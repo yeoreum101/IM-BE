@@ -186,7 +186,7 @@ class MusicService:
         }
     
     @staticmethod
-    def get_playlist(user_info=None, limit=10):
+    def get_playlist(user_info=None, limit=5):
         """전체 플레이리스트 조회
         
         Args:
@@ -233,7 +233,7 @@ class MusicService:
         }
     
     @staticmethod
-    def get_popular_playlist(user_info=None, limit=10):
+    def get_popular_playlist(user_info=None, limit=5):
         """인기 플레이리스트 조회
         
         Args:
