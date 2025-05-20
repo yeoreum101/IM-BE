@@ -10,7 +10,7 @@ import logging
 member_bp = Blueprint('member', __name__)
 logger = logging.getLogger(__name__)
 
-@member_bp.route('/login/oauth2/code/google', methods=['GET'])
+@member_bp.route('/auth/google/callback', methods=['GET'])
 def oauth_login():
     """구글 OAuth 로그인 콜백
     
