@@ -32,10 +32,11 @@ def generate_music(user_info):
         
         data = request.json
         prompt1 = data.get('prompt1')
+        prompt2 = data.get('prompt2', "")
         logger.info(f"텍스트 기반 음악 생성 요청: '{prompt1}'")
         
         # 서비스 호출
-        response = MusicService.generate_music_with_text(prompt1, user_info)
+        response = MusicService.generate_music_with_text(prompt1, prompt2, user_info)
         
         # 응답 스키마 적용
         result = MusicGenWithTextResponseSchema().dump(response)
