@@ -1,0 +1,1 @@
+curl -X POST http://localhost:5000/api/generate-music -H "Content-Type: application/json" -d "{\"prompt1\": \"행복한 피아노 음악\", \"prompt2\": \"빠른 템포\"}"

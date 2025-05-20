@@ -16,7 +16,7 @@ class MusicService:
     """음악 생성 및 관리 서비스"""
     
     @staticmethod
-    def generate_music_with_text(prompt1, user_info=None):
+    def generate_music_with_text(prompt1, prompt2="", user_info=None):
         """텍스트 기반 음악 생성
         
         Args:
@@ -33,7 +33,7 @@ class MusicService:
         try:
             # AI 서버 호출
             ai_client = AIClient()
-            response = ai_client.generate_music_with_text(prompt1)
+            response = ai_client.generate_music_with_text(prompt1, prompt2)
             
             s3_url = response.get('music_url')
             duration = response.get('duration')

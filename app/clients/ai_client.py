@@ -13,7 +13,7 @@ class AIClient:
         if not self.base_url:
             logger.warning("AI_SERVER_URL이 설정되지 않았습니다. 테스트 모드로 작동합니다.")
     
-    def generate_music_with_text(self, prompt):
+    def generate_music_with_text(self, prompt, prompt2=""):
         """텍스트 기반 음악 생성 API 호출
         
         Args:
@@ -38,7 +38,10 @@ class AIClient:
         try:
             url = f"{self.base_url}/generate_audio"
             headers = {'Content-Type': 'application/json'}
-            payload = {'prompt1': prompt}
+            payload = {
+                'prompt1': prompt,
+                'prompt2': prompt2
+            }
             
             logger.info(f"AI 서버 호출: {url}, 프롬프트: {prompt}")
             response = requests.post(url, headers=headers, json=payload, timeout=30)
