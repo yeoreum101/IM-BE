@@ -36,7 +36,6 @@ class MusicService:
             response = ai_client.generate_music_with_text(prompt1, prompt2)
             
             s3_url = response.get('music_url')
-            duration = response.get('duration')
             
             if not s3_url:
                 raise AIServerException("음악 생성에 실패했습니다.")
@@ -44,8 +43,7 @@ class MusicService:
             # Music 테이블에 저장
             music = Music(
                 music_url=s3_url, 
-                title=prompt1,
-                duration=duration
+                title=prompt1
             )
             db.session.add(music)
             
@@ -58,8 +56,7 @@ class MusicService:
                 my_music = MyMusic(
                     music_url=s3_url, 
                     title=prompt1, 
-                    member_id=member.id,
-                    duration=duration
+                    member_id=member.id
                 )
                 db.session.add(my_music)
             
@@ -68,8 +65,7 @@ class MusicService:
             
             return {
                 'musicUrl': s3_url,
-                'title': prompt1,
-                'duration': duration
+                'title': prompt1
             }
             
         except Exception as e:
@@ -101,7 +97,6 @@ class MusicService:
             
             s3_url = response.get('music_url')
             title = response.get('title')
-            duration = response.get('duration')
             
             if not s3_url or not title:
                 raise AIServerException("음악 생성에 실패했습니다.")
@@ -109,8 +104,7 @@ class MusicService:
             # Music 테이블에 저장
             music = Music(
                 music_url=s3_url, 
-                title=title,
-                duration=duration
+                title=title
             )
             db.session.add(music)
             
@@ -123,8 +117,7 @@ class MusicService:
                 my_music = MyMusic(
                     music_url=s3_url, 
                     title=title, 
-                    member_id=member.id,
-                    duration=duration
+                    member_id=member.id
                 )
                 db.session.add(my_music)
             
@@ -133,8 +126,7 @@ class MusicService:
             
             return {
                 'musicUrl': s3_url,
-                'title': title,
-                'duration': duration
+                'title': title
             }
             
         except Exception as e:
@@ -175,8 +167,6 @@ class MusicService:
                 'id': music.id,
                 'musicUrl': music.music_url,
                 'title': music.title,
-                'duration': music.duration,
-                'thumbnailUrl': music.thumbnail_url,
                 'createdAt': music.created_at
             })
         
@@ -221,8 +211,6 @@ class MusicService:
                 'id': music.id,
                 'musicUrl': music.music_url,
                 'title': music.title,
-                'duration': music.duration,
-                'thumbnailUrl': music.thumbnail_url,
                 'likeCount': like_count,
                 'pressed': pressed,
                 'createdAt': music.created_at
@@ -268,8 +256,6 @@ class MusicService:
                 'id': music.id,
                 'musicUrl': music.music_url,
                 'title': music.title,
-                'duration': music.duration,
-                'thumbnailUrl': music.thumbnail_url,
                 'likeCount': like_count,
                 'pressed': pressed,
                 'createdAt': music.created_at

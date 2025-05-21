@@ -37,9 +37,7 @@ class MemberService:
         try:
             new_member = Member(
                 google_id=google_id, 
-                name=name,
-                email=email,
-                profile_image=profile_image
+                name=name
             )
             db.session.add(new_member)
             db.session.commit()
@@ -62,8 +60,6 @@ class MemberService:
         """
         google_id = user_info.get('id')
         name = user_info.get('name')
-        email = user_info.get('email')
-        profile_image = user_info.get('picture')
         
         if not google_id or not name:
             logger.error(f"회원 정보 부족: {user_info}")
@@ -75,9 +71,7 @@ class MemberService:
             # 새 회원 생성
             member = MemberService.create_member(
                 google_id=google_id, 
-                name=name,
-                email=email,
-                profile_image=profile_image
+                name=name
             )
         
         # 액세스 토큰 생성

@@ -17,8 +17,6 @@ class MusicResponseSchema(Schema):
     id = fields.Integer(required=True)
     musicUrl = fields.String(required=True, attribute='music_url')
     title = fields.String(required=True)
-    duration = fields.Integer(allow_none=True)
-    thumbnailUrl = fields.String(attribute='thumbnail_url', allow_none=True)
     likeCount = fields.Integer(attribute='like_count', dump_only=True)
     pressed = fields.Boolean(dump_only=True)
     createdAt = fields.DateTime(attribute='created_at')

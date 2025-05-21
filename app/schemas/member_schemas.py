@@ -5,8 +5,6 @@ class MemberResponseSchema(Schema):
     id = fields.Integer(required=True)
     googleId = fields.String(attribute='google_id', required=True)
     name = fields.String(required=True)
-    email = fields.Email(allow_none=True)
-    profileImage = fields.String(attribute='profile_image', allow_none=True)
     createdAt = fields.DateTime(attribute='created_at')
 
 
