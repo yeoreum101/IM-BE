@@ -8,17 +8,13 @@ class Music(db.Model, BaseModel):
     id = db.Column(db.Integer, primary_key=True)
     music_url = db.Column(db.String(512), nullable=False)
     title = db.Column(db.String(255), nullable=False)
-    duration = db.Column(db.Integer, nullable=True)  # 음악 길이(초)
-    thumbnail_url = db.Column(db.String(512), nullable=True)  # 썸네일 이미지 URL
-    
+
     # Relationships
     likes = db.relationship('Like', backref='music', lazy=True, cascade="all, delete-orphan")
     
-    def __init__(self, music_url, title, duration=None, thumbnail_url=None):
+    def __init__(self, music_url, title):
         self.music_url = music_url
         self.title = title
-        self.duration = duration
-        self.thumbnail_url = thumbnail_url
     
     def to_dict(self, include_like_count=False):
         """음악 객체를 딕셔너리로 변환"""
@@ -26,8 +22,6 @@ class Music(db.Model, BaseModel):
             'id': self.id,
             'music_url': self.music_url,
             'title': self.title,
-            'duration': self.duration,
-            'thumbnail_url': self.thumbnail_url,
             'created_at': self.created_at,
             'updated_at': self.updated_at
         }

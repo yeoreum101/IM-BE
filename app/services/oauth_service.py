@@ -54,6 +54,11 @@ class OAuthService:
                 logger.error("Google 사용자 정보 응답에 ID가 없습니다.")
                 raise UnauthorizedException("사용자 정보를 가져올 수 없습니다.")
             
+            filtered_info = {
+                'id': user_info.get('id'),
+                'name': user_info.get('name')
+            }
+            
             return user_info
         except ExternalAPIException as e:
             logger.error(f"Google 사용자 정보 획득 실패: {str(e)}")

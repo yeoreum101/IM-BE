@@ -31,8 +31,7 @@ class AIClient:
             fake_url = f"https://example.com/fake_music_{prompt.replace(' ', '_')}.mp3"
             return {
                 'music_url': fake_url,
-                'title': prompt,
-                'duration': 180  # 3분 (초 단위)
+                'title': prompt
             }
         
         try:
@@ -59,8 +58,7 @@ class AIClient:
             
             return {
                 'music_url': music_url,
-                'title': prompt,
-                'duration': response_data.get('response', {}).get('duration', 180)
+                'title': prompt
             }
             
         except requests.RequestException as e:
@@ -86,8 +84,7 @@ class AIClient:
             fake_url = f"https://example.com/fake_image_music_{filename.replace(' ', '_')}.mp3"
             return {
                 'music_url': fake_url,
-                'title': f'이미지에서 생성된 음악 - {filename}',
-                'duration': 180  # 3분 (초 단위)
+                'title': f'이미지에서 생성된 음악 - {filename}'
             }
         
         try:
@@ -111,8 +108,7 @@ class AIClient:
             
             return {
                 'music_url': music_url,
-                'title': title,
-                'duration': response_data.get('duration', 180)
+                'title': title
             }
             
         except requests.RequestException as e:
