@@ -5,7 +5,6 @@ class Like(db.Model):
     __tablename__ = 'like_tb'
     
     id = db.Column(db.Integer, primary_key=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # 외래키
     member_id = db.Column(db.Integer, db.ForeignKey('member_tb.id', ondelete='CASCADE'), nullable=False)
@@ -26,7 +25,6 @@ class Like(db.Model):
             'id': self.id,
             'member_id': self.member_id,
             'music_id': self.music_id,
-            'created_at': self.created_at
         }
     
     @classmethod

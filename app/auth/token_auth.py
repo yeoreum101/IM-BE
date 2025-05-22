@@ -16,13 +16,21 @@ def generate_token(member):
     Returns:
         생성된 액세스 토큰
     """
-    identity = {
-        'id': member.id,
+    # sub 필드는 문자열이어야 하므로 member.id를 문자열로 사용
+    identity = str(member.id)  # 또는 member.google_id
+    
+    # 추가 정보는 additional_claims로 전달
+    additional_claims = {
         'google_id': member.google_id,
         'name': member.name
     }
+    
     expires = datetime.timedelta(hours=24)
-    access_token = create_access_token(identity=identity, expires_delta=expires)
+    access_token = create_access_token(
+        identity=identity, 
+        expires_delta=expires,
+        additional_claims=additional_claims
+    )
     logger.info(f"토큰 생성 완료: 사용자 ID {member.id}")
     return access_token
 
@@ -36,8 +44,18 @@ def get_current_user():
         UnauthorizedException: 토큰이 유효하지 않은 경우
     """
     try:
-        jwt_required()
-        current_user = get_jwt_identity()
+        from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
+        
+        verify_jwt_in_request()
+        member_id = get_jwt_identity()  # 이제 문자열
+        claims = get_jwt()  # 추가 클레임들
+        
+        # 사용자 정보 구성
+        current_user = {
+            'id': int(member_id),
+            'google_id': claims.get('google_id'),
+            'name': claims.get('name')
+        }
         return current_user
     except Exception as e:
         logger.error(f"토큰 검증 실패: {str(e)}")
@@ -55,8 +73,22 @@ def auth_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         try:
-            jwt_required()
-            current_user = get_jwt_identity()
+            from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
+            
+            # JWT 요청 검증
+            verify_jwt_in_request()
+            
+            # 사용자 정보 추출
+            member_id = get_jwt_identity()  # 문자열
+            claims = get_jwt()  # 추가 클레임들
+            
+            # 사용자 정보 구성
+            current_user = {
+                'id': int(member_id),
+                'google_id': claims.get('google_id'),
+                'name': claims.get('name')
+            }
+            
             return f(current_user, *args, **kwargs)
         except Exception as e:
             logger.error(f"인증 실패: {str(e)}")
@@ -77,10 +109,19 @@ def optional_auth(f):
         try:
             auth_header = request.headers.get('Authorization')
             if auth_header and auth_header.startswith('Bearer '):
-                from flask_jwt_extended import verify_jwt_in_request
+                from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
                 try:
                     verify_jwt_in_request(optional=True)
-                    current_user = get_jwt_identity()
+                    member_id = get_jwt_identity()  # 문자열
+                    claims = get_jwt()  # 추가 클레임들
+                    
+                    # 사용자 정보 구성 (딕셔너리로 변환)
+                    current_user = {
+                        'id': int(member_id),
+                        'google_id': claims.get('google_id'),
+                        'name': claims.get('name')
+                    }
+                    
                     return f(current_user, *args, **kwargs)
                 except Exception as e:
                     logger.warning(f"토큰 검증 실패 (선택적 인증): {str(e)}")

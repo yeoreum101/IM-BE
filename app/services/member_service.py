@@ -28,8 +28,6 @@ class MemberService:
         Args:
             google_id: 구글 ID
             name: 이름
-            email: 이메일 (선택)
-            profile_image: 프로필 이미지 URL (선택)
             
         Returns:
             생성된 Member 객체
