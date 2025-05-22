@@ -77,8 +77,7 @@ def generate_music_with_image(user_info):
             
         # 파일 확장자 검사
         allowed_extensions = {'jpg', 'jpeg', 'png', 'gif'}
-        if '.' not in image_file.filename or \
-           image_file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        if '.' not in image_file.filename or image_file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
             raise ValidationException("지원하지 않는 이미지 형식입니다.")
         
         logger.info(f"이미지 기반 음악 생성 요청: {image_file.filename}")
@@ -118,9 +117,8 @@ def get_my_playlist(user_info):
         # 서비스 호출
         response = MusicService.get_my_playlist(user_info)
         
-        # 응답 스키마 적용
-        result = MyPlaylistResponseSchema().dump(response)
-        return ApiResponse.success(result)
+        # 스키마 없이 직접 반환
+        return ApiResponse.success(response)
     
     except MemberNotFoundException as e:
         logger.warning(f"회원 찾기 실패: {e.message}")
@@ -144,9 +142,8 @@ def get_playlist(user_info):
         # 서비스 호출
         response = MusicService.get_playlist(user_info)
         
-        # 응답 스키마 적용
-        result = PlaylistResponseSchema().dump(response)
-        return ApiResponse.success(result)
+        # 스키마 없이 직접 반환 (모든 필드 포함)
+        return ApiResponse.success(response)
     
     except Exception as e:
         logger.error(f"플레이리스트 조회 오류: {str(e)}")
@@ -166,9 +163,8 @@ def get_popular_playlist(user_info):
         # 서비스 호출
         response = MusicService.get_popular_playlist(user_info)
         
-        # 응답 스키마 적용
-        result = PlaylistResponseSchema().dump(response)
-        return ApiResponse.success(result)
+        # 스키마 없이 직접 반환 (모든 필드 포함)
+        return ApiResponse.success(response)
     
     except Exception as e:
         logger.error(f"인기 플레이리스트 조회 오류: {str(e)}")

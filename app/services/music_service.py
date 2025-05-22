@@ -186,39 +186,44 @@ class MusicService:
         Returns:
             플레이리스트 정보
         """
-        # 최근 생성된 순서로 조회
-        musics = Music.find_recent(limit)
-        
-        # 응답 형식에 맞게 변환
-        music_list = []
-        member_id = None
-        
-        # 인증된 사용자인 경우 회원 ID 조회
-        if user_info:
-            member = Member.find_by_google_id(user_info.get('google_id'))
-            if member:
-                member_id = member.id
-        
-        for music in musics:
-            like_count = Like.count_by_music(music.id)
-            pressed = False
+        try:
+            # 최근 생성된 순서로 조회
+            musics = Music.find_recent(limit)
             
-            # 인증된 사용자면 좋아요 여부 확인
-            if member_id:
-                pressed = Like.find_by_member_and_music(member_id, music.id) is not None
+            # 응답 형식에 맞게 변환
+            music_list = []
+            member_id = None
             
-            music_list.append({
-                'id': music.id,
-                'musicUrl': music.music_url,
-                'title': music.title,
-                'likeCount': like_count,
-                'pressed': pressed,
-                'createdAt': music.created_at
-            })
-        
-        return {
-            'musicList': music_list
-        }
+            # 인증된 사용자인 경우 회원 ID 조회
+            if user_info:
+                member = Member.find_by_google_id(user_info.get('google_id'))
+                if member:
+                    member_id = member.id
+            
+            for music in musics:
+                like_count = Like.count_by_music(music.id)
+                pressed = False
+                
+                # 인증된 사용자면 좋아요 여부 확인
+                if member_id:
+                    pressed = Like.find_by_member_and_music(member_id, music.id) is not None
+                
+                music_list.append({
+                    'id': music.id,
+                    'musicUrl': music.music_url,  # 이 필드가 누락되어 있었음
+                    'title': music.title,
+                    'likeCount': like_count,       # 이 필드가 누락되어 있었음
+                    'pressed': pressed,
+                    'createdAt': music.created_at
+                })
+            
+            return {
+                'musicList': music_list
+            }
+            
+        except Exception as e:
+            logger.error(f"플레이리스트 조회 오류: {str(e)}")
+            raise
     
     @staticmethod
     def get_popular_playlist(user_info=None, limit=5):
@@ -231,39 +236,44 @@ class MusicService:
         Returns:
             인기 플레이리스트 정보
         """
-        # 좋아요 수가 많은 순서로 조회
-        musics = Music.find_popular(limit)
-        
-        # 응답 형식에 맞게 변환
-        music_list = []
-        member_id = None
-        
-        # 인증된 사용자인 경우 회원 ID 조회
-        if user_info:
-            member = Member.find_by_google_id(user_info.get('google_id'))
-            if member:
-                member_id = member.id
-        
-        for music in musics:
-            like_count = Like.count_by_music(music.id)
-            pressed = False
+        try:
+            # 좋아요 수가 많은 순서로 조회
+            musics = Music.find_popular(limit)
             
-            # 인증된 사용자면 좋아요 여부 확인
-            if member_id:
-                pressed = Like.find_by_member_and_music(member_id, music.id) is not None
+            # 응답 형식에 맞게 변환
+            music_list = []
+            member_id = None
             
-            music_list.append({
-                'id': music.id,
-                'musicUrl': music.music_url,
-                'title': music.title,
-                'likeCount': like_count,
-                'pressed': pressed,
-                'createdAt': music.created_at
-            })
-        
-        return {
-            'musicList': music_list
-        }
+            # 인증된 사용자인 경우 회원 ID 조회
+            if user_info:
+                member = Member.find_by_google_id(user_info.get('google_id'))
+                if member:
+                    member_id = member.id
+            
+            for music in musics:
+                like_count = Like.count_by_music(music.id)
+                pressed = False
+                
+                # 인증된 사용자면 좋아요 여부 확인
+                if member_id:
+                    pressed = Like.find_by_member_and_music(member_id, music.id) is not None
+                
+                music_list.append({
+                    'id': music.id,
+                    'musicUrl': music.music_url,  # 이 필드가 누락되어 있었음
+                    'title': music.title,
+                    'likeCount': like_count,       # 이 필드가 누락되어 있었음
+                    'pressed': pressed,
+                    'createdAt': music.created_at
+                })
+            
+            return {
+                'musicList': music_list
+            }
+            
+        except Exception as e:
+            logger.error(f"인기 플레이리스트 조회 오류: {str(e)}")
+            raise
     
     @staticmethod
     def like_music(music_id, user_info):
