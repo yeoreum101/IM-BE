@@ -50,6 +50,23 @@ def create_app(config_class=None):
     app.register_blueprint(member_bp, url_prefix='/api')
     app.register_blueprint(music_bp, url_prefix='/api')
     
+    # 헬스 체크 라우트 추가
+    @app.route('/api/health', methods=['GET'])
+    def health_check():
+        """헬스 체크 엔드포인트"""
+        from flask import jsonify
+        from datetime import datetime
+        
+        return jsonify({
+            'success': True,
+            'status': 200,
+            'data': {
+                'status': 'healthy',
+                'message': '백엔드 서버가 정상적으로 실행 중입니다.',
+                'timestamp': datetime.utcnow().isoformat()
+            }
+        }), 200
+    
     # 에러 핸들러 등록
     from app.utils.error_handler import register_error_handlers
     register_error_handlers(app)
