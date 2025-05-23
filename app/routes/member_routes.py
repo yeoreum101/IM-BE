@@ -10,25 +10,42 @@ import logging
 member_bp = Blueprint('member', __name__)
 logger = logging.getLogger(__name__)
 
-@member_bp.route('/auth/google/callback', methods=['GET'])
+@member_bp.route('/auth/google/callback', methods=['GET', 'POST'])
 def oauth_login():
     """구글 OAuth 로그인 콜백
+    
+    GET: 기존 방식 (인증 코드 사용)
+    POST: 프론트엔드에서 사용자 정보 직접 전송
     
     Returns:
         JWT 토큰 정보
     """
     try:
-        # 입력 유효성 검사
-        schema = OAuthTokenRequestSchema()
-        errors = schema.validate(request.args)
-        if errors:
-            raise ValidationException("유효하지 않은 요청입니다.", errors=errors)
-        
-        code = request.args.get('code')
-        logger.info(f"Google OAuth 로그인 요청: 코드 길이 {len(code)}")
-        
-        # 로그인 처리
-        response = OAuthService.process_google_login(code)
+        if request.method == 'GET':
+            # 기존 방식: 인증 코드 사용
+            schema = OAuthTokenRequestSchema()
+            errors = schema.validate(request.args)
+            if errors:
+                raise ValidationException("유효하지 않은 요청입니다.", errors=errors)
+            
+            code = request.args.get('code')
+            logger.info(f"Google OAuth 로그인 요청: 코드 길이 {len(code)}")
+            
+            # 로그인 처리
+            response = OAuthService.process_google_login(code)
+            
+        elif request.method == 'POST':
+            # 새로운 방식: 프론트엔드에서 사용자 정보 직접 전송
+            data = request.get_json()
+            user_info = data.get('user_info')
+            
+            if not user_info:
+                raise ValidationException("사용자 정보가 필요합니다.")
+            
+            logger.info(f"프론트엔드에서 사용자 정보 전송: {user_info.get('email')}")
+            
+            # 사용자 정보 직접 처리
+            response = OAuthService.process_google_login_direct(user_info)
         
         # 응답 스키마 적용
         result = TokenResponseSchema().dump(response)
