@@ -33,6 +33,13 @@ class MyMusic(db.Model, BaseModel):
         return cls.query.filter_by(member_id=member_id).order_by(cls.created_at.desc()).limit(limit).all()
     
     @classmethod
-    def find_by_id_and_member_id(cls, id, member_id):
+    def find_by_id_and_member_id(cls, mymusic_id, member_id):
         """내 음악 ID와 회원 ID로 내 음악 찾기"""
-        return cls.query.filter_by(id=id, member_id=member_id).first()
+        return cls.query.filter_by(id=mymusic_id, member_id=member_id).first()
+    
+    @classmethod
+    def find_by_music_id_and_member_id(cls, music_id, member_id):
+        """음악 ID와 회원 ID로 내 음악 찾기 (새로 추가)"""
+        # music_url 기반으로 찾거나, 별도의 music_id 컬럼이 필요할 수 있음
+        # 현재 구조에서는 id를 사용
+        return cls.query.filter_by(id=music_id, member_id=member_id).first()

@@ -128,6 +128,41 @@ def get_my_playlist(user_info):
         logger.error(f"내 플레이리스트 조회 오류: {str(e)}")
         return ApiResponse.error("플레이리스트 조회 중 오류가 발생했습니다.", 500)
 
+@music_bp.route('/music/<int:music_id>', methods=['DELETE'])
+@auth_required
+def delete_music(user_info, music_id):
+    """음악 삭제 (내 플레이리스트에서만)
+    
+    Args:
+        music_id: 음악 ID
+        
+    Returns:
+        성공 메시지
+    """
+    try:
+        logger.info(f"음악 삭제 요청: 사용자 ID {user_info.get('id')}, 음악 ID {music_id}")
+        
+        # 서비스 호출
+        MusicService.delete_my_music(music_id, user_info)
+        
+        return ApiResponse.success(message="음악이 삭제되었습니다.")
+    
+    except MemberNotFoundException as e:
+        logger.warning(f"회원 찾기 실패: {e.message}")
+        return ApiResponse.error(e.message, e.status_code, e.error_code)
+    
+    except MusicNotFoundException as e:
+        logger.warning(f"음악 찾기 실패: {e.message}")
+        return ApiResponse.error(e.message, e.status_code, e.error_code)
+    
+    except ForbiddenException as e:
+        logger.warning(f"권한 없음: {e.message}")
+        return ApiResponse.error(e.message, e.status_code, e.error_code)
+    
+    except Exception as e:
+        logger.error(f"음악 삭제 오류: {str(e)}")
+        return ApiResponse.error("음악 삭제 중 오류가 발생했습니다.", 500)
+
 @music_bp.route('/playlist', methods=['GET'])
 @optional_auth
 def get_playlist(user_info):

@@ -176,6 +176,46 @@ class MusicService:
         }
     
     @staticmethod
+    def delete_my_music(music_id, user_info):
+        """내 음악 삭제
+        
+        Args:
+            music_id: 음악 ID
+            user_info: 사용자 정보
+            
+        Returns:
+            True (성공 시)
+            
+        Raises:
+            MemberNotFoundException: 회원을 찾을 수 없는 경우
+            MusicNotFoundException: 음악을 찾을 수 없는 경우
+            ForbiddenException: 삭제 권한이 없는 경우
+        """
+        if not user_info:
+            raise MemberNotFoundException("인증되지 않은 사용자입니다.")
+        
+        member = Member.find_by_google_id(user_info.get('google_id'))
+        if not member:
+            raise MemberNotFoundException("회원 정보를 찾을 수 없습니다.")
+        
+        # MyMusic에서 해당 음악 찾기
+        my_music = MyMusic.find_by_id_and_member_id(music_id, member.id)
+        if not my_music:
+            raise MusicNotFoundException("삭제할 음악을 찾을 수 없거나 삭제 권한이 없습니다.")
+        
+        try:
+            # MyMusic에서 삭제 (개인 플레이리스트에서만 제거)
+            db.session.delete(my_music)
+            db.session.commit()
+            logger.info(f"내 음악 삭제 완료: 회원 ID {member.id}, 음악 ID {music_id}")
+            
+            return True
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"음악 삭제 실패: {str(e)}")
+            raise
+    
+    @staticmethod
     def get_playlist(user_info=None, limit=5):
         """전체 플레이리스트 조회
         
@@ -225,8 +265,6 @@ class MusicService:
             logger.error(f"플레이리스트 조회 오류: {str(e)}")
             raise
     
-# app/services/music_service.py에서 get_popular_playlist 메서드를 이렇게 수정하세요
-
     @staticmethod
     def get_popular_playlist(user_info=None, limit=5):
         """인기 플레이리스트 조회
