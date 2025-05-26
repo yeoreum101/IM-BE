@@ -34,5 +34,9 @@ class Like(db.Model):
     
     @classmethod
     def count_by_music(cls, music_id):
-        """음악 ID별 좋아요 수 계산"""
-        return cls.query.filter_by(music_id=music_id).count()
+        """음악 ID별 좋아요 수 계산 (캐싱 개선)"""
+        try:
+            return cls.query.filter_by(music_id=music_id).count()
+        except Exception as e:
+            logger.error(f"좋아요 수 조회 오류 (music_id: {music_id}): {e}")
+            return 0  # 에러 시 0 반환

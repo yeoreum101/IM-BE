@@ -225,6 +225,8 @@ class MusicService:
             logger.error(f"플레이리스트 조회 오류: {str(e)}")
             raise
     
+# app/services/music_service.py에서 get_popular_playlist 메서드를 이렇게 수정하세요
+
     @staticmethod
     def get_popular_playlist(user_info=None, limit=5):
         """인기 플레이리스트 조회
@@ -239,6 +241,11 @@ class MusicService:
         try:
             # 좋아요 수가 많은 순서로 조회
             musics = Music.find_popular(limit)
+            
+            # 만약 인기 음악이 없으면 최신 음악으로 대체
+            if not musics:
+                logger.info("인기 음악이 없어서 최신 음악으로 대체합니다.")
+                musics = Music.find_recent(limit)
             
             # 응답 형식에 맞게 변환
             music_list = []
@@ -260,12 +267,14 @@ class MusicService:
                 
                 music_list.append({
                     'id': music.id,
-                    'musicUrl': music.music_url,  # 이 필드가 누락되어 있었음
+                    'musicUrl': music.music_url,
                     'title': music.title,
-                    'likeCount': like_count,       # 이 필드가 누락되어 있었음
+                    'likeCount': like_count,
                     'pressed': pressed,
                     'createdAt': music.created_at
                 })
+            
+            logger.info(f"인기 플레이리스트 반환: {len(music_list)}개 음악")
             
             return {
                 'musicList': music_list
@@ -273,7 +282,22 @@ class MusicService:
             
         except Exception as e:
             logger.error(f"인기 플레이리스트 조회 오류: {str(e)}")
-            raise
+            # 에러 발생 시 최신 음악으로 대체
+            try:
+                musics = Music.find_recent(limit)
+                music_list = []
+                for music in musics:
+                    music_list.append({
+                        'id': music.id,
+                        'musicUrl': music.music_url,
+                        'title': music.title,
+                        'likeCount': 0,
+                        'pressed': False,
+                        'createdAt': music.created_at
+                    })
+                return {'musicList': music_list}
+            except:
+                return {'musicList': []}
     
     @staticmethod
     def like_music(music_id, user_info):

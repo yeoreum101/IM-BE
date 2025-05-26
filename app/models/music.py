@@ -41,20 +41,25 @@ class Music(db.Model, BaseModel):
     def find_recent(cls, limit=10):
         """최근 음악 목록 조회"""
         return cls.query.order_by(cls.created_at.desc()).limit(limit).all()
-    
+        
     @classmethod
     def find_popular(cls, limit=10):
         """인기 음악 목록 조회 (좋아요 많은 순)"""
         from app.models.like import Like
         
+        # LEFT JOIN을 사용해서 좋아요가 없는 음악도 포함
         subquery = db.session.query(
             Like.music_id, 
             func.count(Like.id).label('like_count')
         ).group_by(Like.music_id).subquery()
         
-        return db.session.query(cls).join(
+        # LEFT JOIN으로 변경하고, 좋아요 수로 정렬 (NULL은 0으로 처리)
+        result = db.session.query(cls).outerjoin(
             subquery, 
             cls.id == subquery.c.music_id
         ).order_by(
-            subquery.c.like_count.desc()
+            func.coalesce(subquery.c.like_count, 0).desc(),
+            cls.created_at.desc()  # 좋아요 수가 같으면 최신순
         ).limit(limit).all()
+        
+        return result
