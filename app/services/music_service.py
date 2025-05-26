@@ -20,7 +20,8 @@ class MusicService:
         """텍스트 기반 음악 생성
         
         Args:
-            prompt1: 텍스트 프롬프트
+            prompt1: 첫 번째 텍스트 프롬프트
+            prompt2: 두 번째 텍스트 프롬프트 (선택사항)
             user_info: 사용자 정보 (선택)
             
         Returns:
@@ -40,10 +41,14 @@ class MusicService:
             if not s3_url:
                 raise AIServerException("음악 생성에 실패했습니다.")
             
+            title = prompt1
+            if prompt2:
+                title = f"{prompt2}"
+
             # Music 테이블에 저장
             music = Music(
                 music_url=s3_url, 
-                title=prompt1
+                title=title
             )
             db.session.add(music)
             
@@ -55,17 +60,17 @@ class MusicService:
                 
                 my_music = MyMusic(
                     music_url=s3_url, 
-                    title=prompt1, 
+                    title=title, 
                     member_id=member.id
                 )
                 db.session.add(my_music)
             
             db.session.commit()
-            logger.info(f"음악 생성 완료: {prompt1}")
+            logger.info(f"음악 생성 완료: {title}")
             
             return {
                 'musicUrl': s3_url,
-                'title': prompt1
+                'title': title
             }
             
         except Exception as e:

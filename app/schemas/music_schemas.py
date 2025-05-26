@@ -4,6 +4,8 @@ class MusicGenWithTextRequestSchema(Schema):
     """텍스트 기반 음악 생성 요청 스키마"""
     prompt1 = fields.String(required=True, validate=validate.Length(min=1, max=500), 
                             error_messages={'required': '프롬프트가 필요합니다.'})
+    prompt2 = fields.String(required=False, validate=validate.Length(max=500), 
+                            missing="", default="")
 
 
 class MusicGenWithTextResponseSchema(Schema):
