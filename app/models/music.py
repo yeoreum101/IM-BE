@@ -1,6 +1,6 @@
 from app import db
 from app.models.base import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, event
 
 class Music(db.Model, BaseModel):
     __tablename__ = 'music_tb'
@@ -11,6 +11,7 @@ class Music(db.Model, BaseModel):
 
     # Relationships
     likes = db.relationship('Like', backref='music', lazy=True, cascade="all, delete-orphan")
+    # my_musics는 MyMusic 모델에서 backref로 설정됨
     
     def __init__(self, music_url, title):
         self.music_url = music_url
@@ -41,25 +42,43 @@ class Music(db.Model, BaseModel):
     def find_recent(cls, limit=10):
         """최근 음악 목록 조회"""
         return cls.query.order_by(cls.created_at.desc()).limit(limit).all()
-        
+    
     @classmethod
     def find_popular(cls, limit=10):
         """인기 음악 목록 조회 (좋아요 많은 순)"""
         from app.models.like import Like
         
-        # LEFT JOIN을 사용해서 좋아요가 없는 음악도 포함
         subquery = db.session.query(
             Like.music_id, 
             func.count(Like.id).label('like_count')
         ).group_by(Like.music_id).subquery()
         
-        # LEFT JOIN으로 변경하고, 좋아요 수로 정렬 (NULL은 0으로 처리)
-        result = db.session.query(cls).outerjoin(
+        return db.session.query(cls).join(
             subquery, 
             cls.id == subquery.c.music_id
         ).order_by(
-            func.coalesce(subquery.c.like_count, 0).desc(),
-            cls.created_at.desc()  # 좋아요 수가 같으면 최신순
+            subquery.c.like_count.desc()
         ).limit(limit).all()
+
+    def delete_cascade(self):
+        """Music 삭제 시 관련된 MyMusic도 삭제"""
+        from app.models.mymusic import MyMusic
         
-        return result
+        # MyMusic 레코드들을 먼저 삭제
+        MyMusic.delete_by_music_id(self.id)
+        
+        # Music 레코드 삭제 (Like는 cascade로 자동 삭제됨)
+        db.session.delete(self)
+        db.session.commit()
+
+
+# SQLAlchemy 이벤트 리스너를 사용한 양방향 CASCADE 삭제
+@event.listens_for(Music, 'before_delete')
+def delete_related_mymusics(mapper, connection, target):
+    """Music 삭제 전에 관련된 MyMusic 레코드들을 먼저 삭제"""
+    from app.models.mymusic import MyMusic
+    
+    # 직접 SQL을 실행하여 관련 MyMusic 레코드들 삭제
+    connection.execute(
+        MyMusic.__table__.delete().where(MyMusic.music_id == target.id)
+    )

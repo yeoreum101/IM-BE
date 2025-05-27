@@ -5,23 +5,25 @@ class MyMusic(db.Model, BaseModel):
     __tablename__ = 'mymusic_tb'
     
     id = db.Column(db.Integer, primary_key=True)
-    music_url = db.Column(db.String(512), nullable=False)
-    title = db.Column(db.String(255), nullable=False)
     
-    # 외래키
+    # 외래키 - Music 테이블 참조
+    music_id = db.Column(db.Integer, db.ForeignKey('music_tb.id', ondelete='CASCADE'), nullable=False)
     member_id = db.Column(db.Integer, db.ForeignKey('member_tb.id', ondelete='CASCADE'), nullable=False)
     
-    def __init__(self, music_url, title, member_id):
-        self.music_url = music_url
-        self.title = title
+    # Music 테이블과의 관계 설정
+    music = db.relationship('Music', backref='my_musics', lazy=True)
+    
+    def __init__(self, music_id, member_id):
+        self.music_id = music_id
         self.member_id = member_id
     
     def to_dict(self):
         """내 음악 객체를 딕셔너리로 변환"""
         return {
             'id': self.id,
-            'music_url': self.music_url,
-            'title': self.title,
+            'music_id': self.music_id,
+            'music_url': self.music.music_url if self.music else None,
+            'title': self.music.title if self.music else None,
             'member_id': self.member_id,
             'created_at': self.created_at,
             'updated_at': self.updated_at
@@ -29,17 +31,22 @@ class MyMusic(db.Model, BaseModel):
     
     @classmethod
     def find_by_member_id(cls, member_id, limit=10):
-        """회원 ID로 내 음악 목록 조회"""
-        return cls.query.filter_by(member_id=member_id).order_by(cls.created_at.desc()).limit(limit).all()
+        """회원 ID로 내 음악 목록 조회 (Music과 조인)"""
+        return cls.query.join(cls.music).filter(cls.member_id == member_id)\
+                      .order_by(cls.created_at.desc()).limit(limit).all()
     
     @classmethod
-    def find_by_id_and_member_id(cls, mymusic_id, member_id):
+    def find_by_id_and_member_id(cls, id, member_id):
         """내 음악 ID와 회원 ID로 내 음악 찾기"""
-        return cls.query.filter_by(id=mymusic_id, member_id=member_id).first()
+        return cls.query.filter_by(id=id, member_id=member_id).first()
     
     @classmethod
     def find_by_music_id_and_member_id(cls, music_id, member_id):
-        """음악 ID와 회원 ID로 내 음악 찾기 (새로 추가)"""
-        # music_url 기반으로 찾거나, 별도의 music_id 컬럼이 필요할 수 있음
-        # 현재 구조에서는 id를 사용
-        return cls.query.filter_by(id=music_id, member_id=member_id).first()
+        """음악 ID와 회원 ID로 내 음악 찾기"""
+        return cls.query.filter_by(music_id=music_id, member_id=member_id).first()
+    
+    @classmethod
+    def delete_by_music_id(cls, music_id):
+        """특정 음악 ID의 모든 MyMusic 레코드 삭제"""
+        cls.query.filter_by(music_id=music_id).delete()
+        db.session.commit()

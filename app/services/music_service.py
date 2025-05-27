@@ -44,13 +44,14 @@ class MusicService:
             title = prompt1
             if prompt2:
                 title = f"{prompt2}"
-
+            
             # Music 테이블에 저장
             music = Music(
                 music_url=s3_url, 
                 title=title
             )
             db.session.add(music)
+            db.session.flush()  # music.id를 얻기 위해 flush
             
             # 인증된 사용자라면 MyMusic에도 저장
             if user_info:
@@ -58,12 +59,14 @@ class MusicService:
                 if not member:
                     raise MemberNotFoundException()
                 
-                my_music = MyMusic(
-                    music_url=s3_url, 
-                    title=title, 
-                    member_id=member.id
-                )
-                db.session.add(my_music)
+                # 중복 체크 - 이미 해당 음악이 사용자의 플레이리스트에 있는지 확인
+                existing_mymusic = MyMusic.find_by_music_id_and_member_id(music.id, member.id)
+                if not existing_mymusic:
+                    my_music = MyMusic(
+                        music_id=music.id,
+                        member_id=member.id
+                    )
+                    db.session.add(my_music)
             
             db.session.commit()
             logger.info(f"음악 생성 완료: {title}")
@@ -112,6 +115,7 @@ class MusicService:
                 title=title
             )
             db.session.add(music)
+            db.session.flush()  # music.id를 얻기 위해 flush
             
             # 인증된 사용자라면 MyMusic에도 저장
             if user_info:
@@ -119,12 +123,14 @@ class MusicService:
                 if not member:
                     raise MemberNotFoundException()
                 
-                my_music = MyMusic(
-                    music_url=s3_url, 
-                    title=title, 
-                    member_id=member.id
-                )
-                db.session.add(my_music)
+                # 중복 체크
+                existing_mymusic = MyMusic.find_by_music_id_and_member_id(music.id, member.id)
+                if not existing_mymusic:
+                    my_music = MyMusic(
+                        music_id=music.id,
+                        member_id=member.id
+                    )
+                    db.session.add(my_music)
             
             db.session.commit()
             logger.info(f"이미지 기반 음악 생성 완료: {title}")
@@ -162,63 +168,24 @@ class MusicService:
         if not member:
             raise MemberNotFoundException("회원 정보를 찾을 수 없습니다.")
         
-        # 최근 생성된 순서로 조회
+        # 최근 생성된 순서로 조회 (Music과 조인)
         my_musics = MyMusic.find_by_member_id(member.id, limit)
         
         # 응답 형식에 맞게 변환
         music_list = []
-        for music in my_musics:
-            music_list.append({
-                'id': music.id,
-                'musicUrl': music.music_url,
-                'title': music.title,
-                'createdAt': music.created_at
-            })
+        for my_music in my_musics:
+            if my_music.music:  # Music이 존재하는 경우만
+                music_list.append({
+                    'id': my_music.music.id,
+                    'musicUrl': my_music.music.music_url,
+                    'title': my_music.music.title,
+                    'createdAt': my_music.created_at
+                })
         
         return {
             'name': member.name,
             'musicList': music_list
         }
-    
-    @staticmethod
-    def delete_my_music(music_id, user_info):
-        """내 음악 삭제
-        
-        Args:
-            music_id: 음악 ID
-            user_info: 사용자 정보
-            
-        Returns:
-            True (성공 시)
-            
-        Raises:
-            MemberNotFoundException: 회원을 찾을 수 없는 경우
-            MusicNotFoundException: 음악을 찾을 수 없는 경우
-            ForbiddenException: 삭제 권한이 없는 경우
-        """
-        if not user_info:
-            raise MemberNotFoundException("인증되지 않은 사용자입니다.")
-        
-        member = Member.find_by_google_id(user_info.get('google_id'))
-        if not member:
-            raise MemberNotFoundException("회원 정보를 찾을 수 없습니다.")
-        
-        # MyMusic에서 해당 음악 찾기
-        my_music = MyMusic.find_by_id_and_member_id(music_id, member.id)
-        if not my_music:
-            raise MusicNotFoundException("삭제할 음악을 찾을 수 없거나 삭제 권한이 없습니다.")
-        
-        try:
-            # MyMusic에서 삭제 (개인 플레이리스트에서만 제거)
-            db.session.delete(my_music)
-            db.session.commit()
-            logger.info(f"내 음악 삭제 완료: 회원 ID {member.id}, 음악 ID {music_id}")
-            
-            return True
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"음악 삭제 실패: {str(e)}")
-            raise
     
     @staticmethod
     def get_playlist(user_info=None, limit=5):
@@ -255,9 +222,9 @@ class MusicService:
                 
                 music_list.append({
                     'id': music.id,
-                    'musicUrl': music.music_url,  # 이 필드가 누락되어 있었음
+                    'musicUrl': music.music_url,
                     'title': music.title,
-                    'likeCount': like_count,       # 이 필드가 누락되어 있었음
+                    'likeCount': like_count,
                     'pressed': pressed,
                     'createdAt': music.created_at
                 })
@@ -284,11 +251,6 @@ class MusicService:
         try:
             # 좋아요 수가 많은 순서로 조회
             musics = Music.find_popular(limit)
-            
-            # 만약 인기 음악이 없으면 최신 음악으로 대체
-            if not musics:
-                logger.info("인기 음악이 없어서 최신 음악으로 대체합니다.")
-                musics = Music.find_recent(limit)
             
             # 응답 형식에 맞게 변환
             music_list = []
@@ -317,30 +279,13 @@ class MusicService:
                     'createdAt': music.created_at
                 })
             
-            logger.info(f"인기 플레이리스트 반환: {len(music_list)}개 음악")
-            
             return {
                 'musicList': music_list
             }
             
         except Exception as e:
             logger.error(f"인기 플레이리스트 조회 오류: {str(e)}")
-            # 에러 발생 시 최신 음악으로 대체
-            try:
-                musics = Music.find_recent(limit)
-                music_list = []
-                for music in musics:
-                    music_list.append({
-                        'id': music.id,
-                        'musicUrl': music.music_url,
-                        'title': music.title,
-                        'likeCount': 0,
-                        'pressed': False,
-                        'createdAt': music.created_at
-                    })
-                return {'musicList': music_list}
-            except:
-                return {'musicList': []}
+            raise
     
     @staticmethod
     def like_music(music_id, user_info):
@@ -425,4 +370,76 @@ class MusicService:
         except Exception as e:
             db.session.rollback()
             logger.error(f"좋아요 취소 실패: {str(e)}")
+            raise
+    
+    @staticmethod
+    def delete_my_music(music_id, user_info):
+        """내 플레이리스트에서 음악 삭제 (MyMusic만 삭제, Music은 유지)
+        
+        Args:
+            music_id: 음악 ID
+            user_info: 사용자 정보
+            
+        Returns:
+            True (성공 시)
+            
+        Raises:
+            MemberNotFoundException: 회원을 찾을 수 없는 경우
+            MusicNotFoundException: 음악을 찾을 수 없는 경우
+        """
+        if not user_info:
+            raise MemberNotFoundException("인증되지 않은 사용자입니다.")
+        
+        member = Member.find_by_google_id(user_info.get('google_id'))
+        if not member:
+            raise MemberNotFoundException("회원 정보를 찾을 수 없습니다.")
+        
+        # 해당 사용자의 MyMusic 레코드 찾기
+        my_music = MyMusic.find_by_music_id_and_member_id(music_id, member.id)
+        if not my_music:
+            raise MusicNotFoundException("내 플레이리스트에서 해당 음악을 찾을 수 없습니다.")
+        
+        try:
+            # MyMusic 레코드만 삭제 (Music은 유지)
+            db.session.delete(my_music)
+            db.session.commit()
+            logger.info(f"내 플레이리스트에서 음악 삭제: 회원 ID {member.id}, 음악 ID {music_id}")
+            
+            return True
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"내 플레이리스트 음악 삭제 실패: {str(e)}")
+            raise
+    
+    @staticmethod
+    def delete_music_completely(music_id, user_info):
+        """음악 완전 삭제 (Music과 관련된 모든 레코드 삭제)
+        
+        Args:
+            music_id: 음악 ID
+            user_info: 사용자 정보 (관리자 권한 체크용)
+            
+        Returns:
+            True (성공 시)
+            
+        Raises:
+            MemberNotFoundException: 회원을 찾을 수 없는 경우
+            MusicNotFoundException: 음악을 찾을 수 없는 경우
+        """
+        if not user_info:
+            raise MemberNotFoundException("인증되지 않은 사용자입니다.")
+        
+        music = Music.find_by_id(music_id)
+        if not music:
+            raise MusicNotFoundException(f"ID가 {music_id}인 음악을 찾을 수 없습니다.")
+        
+        try:
+            # Music 삭제 (이벤트 리스너가 MyMusic과 Like를 자동으로 삭제함)
+            music.delete_cascade()
+            logger.info(f"음악 완전 삭제: 음악 ID {music_id}")
+            
+            return True
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"음악 완전 삭제 실패: {str(e)}")
             raise
