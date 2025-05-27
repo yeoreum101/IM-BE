@@ -4,6 +4,8 @@ from app.utils.api_response import ApiResponse
 from app.auth.token_auth import auth_required, optional_auth
 from app.schemas.music_schemas import (
     MusicGenWithTextRequestSchema, MusicGenWithTextResponseSchema,
+    MusicGenWithImageResponseSchema, MusicGenWithVideoResponseSchema,
+    ImageUploadRequestSchema, VideoUploadRequestSchema, FileValidationUtils,
     MusicResponseSchema, PlaylistResponseSchema, MyPlaylistResponseSchema
 )
 from app.utils.exceptions import (
@@ -75,17 +77,19 @@ def generate_music_with_image(user_info):
         if image_file.filename == '':
             raise ValidationException("이미지가 선택되지 않았습니다.")
             
-        # 파일 확장자 검사
-        allowed_extensions = {'jpg', 'jpeg', 'png', 'gif'}
-        if '.' not in image_file.filename or image_file.filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
-            raise ValidationException("지원하지 않는 이미지 형식입니다.")
+        # 스키마를 사용한 파일 검증
+        try:
+            FileValidationUtils.validate_image_file(image_file)
+        except ValidationError as ve:
+            raise ValidationException(str(ve))
         
         logger.info(f"이미지 기반 음악 생성 요청: {image_file.filename}")
         
         # 서비스 호출
         response = MusicService.generate_music_with_image(image_file, user_info)
-        
-        return ApiResponse.success(response)
+
+        result = MusicGenWithImageResponseSchema().dump(response)
+        return ApiResponse.success(result)
     
     except ValidationException as e:
         logger.warning(f"이미지 음악 생성 검증 실패: {e.message}")
@@ -101,6 +105,51 @@ def generate_music_with_image(user_info):
     
     except Exception as e:
         logger.error(f"이미지 음악 생성 오류: {str(e)}")
+        return ApiResponse.error("음악 생성 중 오류가 발생했습니다.", 500)
+
+@music_bp.route('/generate-music/video', methods=['POST'])
+@optional_auth
+def generate_music_with_video(user_info):
+    """동영상 기반 음악 생성
+    
+    Returns:
+        생성된 음악 정보
+    """
+    try:
+        if 'video' not in request.files:
+            raise ValidationException("동영상이 제공되지 않았습니다.")
+        
+        video_file = request.files['video']
+        
+        # 스키마를 사용한 파일 검증
+        try:
+            FileValidationUtils.validate_video_file(video_file)
+        except ValidationError as ve:
+            raise ValidationException(str(ve))
+        
+        logger.info(f"동영상 기반 음악 생성 요청: {video_file.filename}")
+        
+        # 서비스 호출
+        response = MusicService.generate_music_with_video(video_file, user_info)
+        
+        # 응답 스키마 적용
+        result = MusicGenWithVideoResponseSchema().dump(response)
+        return ApiResponse.success(result)
+    
+    except ValidationException as e:
+        logger.warning(f"동영상 음악 생성 검증 실패: {e.message}")
+        return ApiResponse.error(e.message, e.status_code, e.error_code)
+    
+    except AIServerException as e:
+        logger.error(f"AI 서버 오류: {e.message}")
+        return ApiResponse.error(e.message, e.status_code, e.error_code)
+    
+    except MemberNotFoundException as e:
+        logger.warning(f"회원 찾기 실패: {e.message}")
+        return ApiResponse.error(e.message, e.status_code, e.error_code)
+    
+    except Exception as e:
+        logger.error(f"동영상 음악 생성 오류: {str(e)}")
         return ApiResponse.error("음악 생성 중 오류가 발생했습니다.", 500)
 
 @music_bp.route('/myplaylist', methods=['GET'])

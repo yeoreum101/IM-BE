@@ -148,6 +148,70 @@ class MusicService:
             raise AIServerException("음악 생성 중 오류가 발생했습니다.")
     
     @staticmethod
+    def generate_music_with_video(video_file, user_info=None):
+        """동영상 기반 음악 생성
+        
+        Args:
+            video_file: 동영상 파일
+            user_info: 사용자 정보 (선택)
+            
+        Returns:
+            생성된 음악 정보
+            
+        Raises:
+            AIServerException: AI 서버 처리 중 오류 발생 시
+            MemberNotFoundException: 회원을 찾을 수 없는 경우
+        """
+        try:
+            # AI 서버 호출
+            ai_client = AIClient()
+            response = ai_client.generate_music_with_video(video_file)
+            
+            s3_url = response.get('music_url')
+            title = response.get('title')
+            
+            if not s3_url or not title:
+                raise AIServerException("음악 생성에 실패했습니다.")
+            
+            # Music 테이블에 저장 - 파라미터 순서 수정
+            music = Music(
+                music_url=s3_url,  # 첫 번째 파라미터
+                title=title        # 두 번째 파라미터
+            )
+            db.session.add(music)
+            db.session.flush()  # music.id를 얻기 위해 flush
+            
+            # 인증된 사용자라면 MyMusic에도 저장
+            if user_info:
+                member = Member.find_by_google_id(user_info.get('google_id'))
+                if not member:
+                    raise MemberNotFoundException()
+                
+                # 중복 체크
+                existing_mymusic = MyMusic.find_by_music_id_and_member_id(music.id, member.id)
+                if not existing_mymusic:
+                    my_music = MyMusic(
+                        music_id=music.id,
+                        member_id=member.id
+                    )
+                    db.session.add(my_music)
+            
+            db.session.commit()
+            logger.info(f"동영상 기반 음악 생성 완료: {title}")
+            
+            return {
+                'musicUrl': s3_url,
+                'title': title
+            }
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"동영상 기반 음악 생성 오류: {str(e)}")
+            if isinstance(e, (AIServerException, MemberNotFoundException)):
+                raise
+            raise AIServerException("음악 생성 중 오류가 발생했습니다.")
+    
+    @staticmethod
     def get_my_playlist(user_info, limit=10):
         """내 플레이리스트 조회
         

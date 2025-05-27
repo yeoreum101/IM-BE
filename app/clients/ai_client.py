@@ -114,3 +114,53 @@ class AIClient:
         except requests.RequestException as e:
             logger.error(f"AI 서버 요청 오류: {str(e)}")
             raise ExternalAPIException(f"AI 서버 연결 오류: {str(e)}")
+        
+    def generate_music_with_video(self, video_file):
+        """동영상 기반 음악 생성 API 호출
+        
+        Args:
+            video_file: 동영상 파일 객체
+            
+        Returns:
+            음악 URL 및 메타데이터를 포함한 딕셔너리
+            
+        Raises:
+            AIServerException: AI 서버 호출 중 오류 발생 시
+        """
+        # 테스트 모드 (AI 서버 URL이 없을 경우)
+        if not self.base_url:
+            # 가짜 URL 생성
+            filename = video_file.filename if video_file.filename else 'video'
+            fake_url = f"https://example.com/fake_video_music_{filename.replace(' ', '_')}.mp3"
+            return {
+                'music_url': fake_url,
+                'title': f'동영상에서 생성된 음악 - {filename}'
+            }
+        
+        try:
+            url = f"{self.base_url}/generate_audio_from_video"
+            files = {'file': (video_file.filename, video_file, video_file.content_type)}
+            
+            logger.info(f"AI 서버 호출: {url}, 동영상: {video_file.filename}")
+            response = requests.post(url, files=files, timeout=60)  # 동영상 처리는 시간이 더 걸릴 수 있음
+            
+            if response.status_code != 200:
+                logger.error(f"AI 서버 오류: {response.status_code}, {response.text}")
+                raise AIServerException(f"AI 서버 오류: {response.status_code}")
+            
+            response_data = response.json()
+            music_url = response_data.get('musicUrl')
+            title = response_data.get('title')
+            
+            if not music_url or not title:
+                logger.error(f"AI 서버 응답에 필요한 데이터가 없습니다: {response_data}")
+                raise AIServerException("음악 생성에 실패했습니다.")
+            
+            return {
+                'music_url': music_url,
+                'title': title
+            }
+            
+        except requests.RequestException as e:
+            logger.error(f"AI 서버 요청 오류: {str(e)}")
+            raise ExternalAPIException(f"AI 서버 연결 오류: {str(e)}")

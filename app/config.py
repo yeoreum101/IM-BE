@@ -1,3 +1,5 @@
+# app/config.py 완전한 버전
+
 import os
 from datetime import timedelta
 
@@ -34,8 +36,20 @@ class Config:
     AWS_SECRET_KEY = os.environ.get('AWS_SECRET_KEY')
     
     # 파일 업로드 설정
-    MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB
-    ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
+    MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100MB (동영상 때문에 증가)
+    
+    # 허용된 파일 확장자
+    ALLOWED_IMAGE_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'}
+    ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm', 'flv', 'wmv'}
+    ALLOWED_EXTENSIONS = ALLOWED_IMAGE_EXTENSIONS | ALLOWED_VIDEO_EXTENSIONS
+    
+    # 파일 크기 제한
+    MAX_IMAGE_SIZE = 10 * 1024 * 1024   # 10MB
+    MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100MB
+    
+    # 파일 업로드 타임아웃 설정
+    IMAGE_UPLOAD_TIMEOUT = 30  # 30초
+    VIDEO_UPLOAD_TIMEOUT = 120  # 2분
     
     # 로깅 설정
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
